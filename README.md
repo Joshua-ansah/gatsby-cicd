@@ -1,99 +1,106 @@
-<!-- AUTO-GENERATED-CONTENT:START (STARTER) -->
-<p align="center">
-  <a href="https://www.gatsbyjs.com">
-    <img alt="Gatsby" src="https://www.gatsbyjs.com/Gatsby-Monogram.svg" width="60" />
-  </a>
-</p>
-<h1 align="center">
-  Gatsby's default starter
-</h1>
+![Thumbnail](/project-images/thumbnail.png)
+# CI/CD PROJECT IN AWS WITH GATSBY.JS
 
-Kick off your project with this default boilerplate. This starter ships with the main Gatsby configuration files you might need to get up and running blazing fast with the blazing fast app generator for React.
+Deploying web applications efficiently and reliably is a critical part of any developer's workflow, and Amazon Web Services (AWS) offers a suite of powerful tools to streamline this process. This guide walks you through setting up a seamless deployment pipeline for your Gatsby.js website using AWS CodeBuild, CodePipeline, S3, and CloudFront.
 
-_Have another more specific idea? You may want to check out our vibrant collection of [official and community-created starters](https://www.gatsbyjs.com/docs/gatsby-starters/)._
+While Gatsby.js provides the framework for building fast and modern websites, the spotlight here is on leveraging AWS's robust infrastructure to automate the deployment process, ensure high availability, and deliver your site to users worldwide with minimal latency. Whether you are a seasoned developer looking to enhance your deployment strategy or a newcomer eager to learn about AWS's capabilities, this guide will provide you with the insights and steps needed to master website deployment on AWS. From setting up an S3 bucket for storage to configuring a CloudFront distribution for optimal content delivery, we will cover every detail to help you deploy your Gatsby.js site efficiently and effectively.
 
-## 🚀 Quick start
+Let's dive into the world of AWS and explore how you can use its tools to create a powerful, automated deployment pipeline that ensures your website is always up-to-date and performing at its best.
 
-1.  **Create a Gatsby site.**
+## Detailed Outline of the Process
 
-    Use the Gatsby CLI ([install instructions](https://www.gatsbyjs.com/docs/tutorial/getting-started/part-0/#gatsby-cli)) to create a new site, specifying the default starter.
+### Step 1: Create an S3 Bucket
 
-    ```shell
-    # create a new Gatsby site using the default starter
-    gatsby new my-default-starter https://github.com/gatsbyjs/gatsby-starter-default
-    ```
+1. **Open the S3 Console**
+   - Search for S3 in the search bar of the AWS console.
+   - On the S3 dashboard, click on the "Create Bucket" button on the right.
 
-1.  **Start developing.**
+2. **Create a New Bucket**
+   - Choose the general purpose bucket and give it a name.
+   - Select the appropriate region for your bucket.
+   - Uncheck "Block all public access" to make the website publicly accessible.
+   - Enable static website hosting and specify the index document (e.g., `index.html`).
 
-    Navigate into your new site’s directory and start it up.
+3. **Set Bucket Policy**
+   - Configure a bucket policy to allow public read access:
+     ```json
+    {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::aws-gatsby-web-deploy/*"
+        }
+    ]
+  }
+     ```
+![Adding A Policy](/project-images/Add-policy-to-bucket.png)
 
-    ```shell
-    cd my-default-starter/
-    gatsby develop
-    ```
 
-1.  **Open the source code and start editing!**
+### Step 2: Create a CloudFront Distribution
 
-    Your site is now running at `http://localhost:8000`!
+1. **Open the CloudFront Console**
+   - Create a new distribution.
+   - Set the origin domain to your S3 bucket URL.
+   - Set the default root object (e.g., `index.html`).
+   - Enable the Web Application Firewall (WAF) for extra security if needed.
+   - Configure cache settings and SSL certificates as needed.
 
-    Note: You'll also see a second link: `http://localhost:8000/___graphql`. This is a tool you can use to experiment with querying your data. Learn more about using this tool in the [Gatsby Tutorial](https://www.gatsbyjs.com/docs/tutorial/getting-started/part-4/#use-graphiql-to-explore-the-data-layer-and-write-graphql-queries).
+You could optionaly setup AWS code commit repository Where you could deploy your code to but in this project We are going to connect our Github Account to AWS directly. To do that search for any of the AWS developer tools like AWS Code Build,
 
-    Open the `my-default-starter` directory in your code editor of choice and edit `src/pages/index.js`. Save your changes and the browser will update in real time!
+![Connecting your Github Account To AWS](/project-images/Devconnect.png)
 
-## 🚀 Quick start (Netlify)
 
-Deploy this starter with one click on [Netlify](https://app.netlify.com/signup):
+### Step 3: Set Up CodeBuild
 
-[<img src="https://www.netlify.com/img/deploy/button.svg" alt="Deploy to Netlify" />](https://app.netlify.com/start/deploy?repository=https://github.com/gatsbyjs/gatsby-starter-default)
+1. **Create a Build Project**
+   - Open the CodeBuild console.
+   - Create a new build project.
+   - Configure the source to point to your CodeCommit repository or connect your GitHub account directly to AWS.
+   - Set the environment to use a managed image with Node.js.
+   - Create a `buildspec.yml` file in the root of your project directory and add the following code:
+     ```yaml
+     version: 0.2
+     phases:
+       install:
+         commands:
+           - npm install
+       build:
+         commands:
+           - npm run build
+     artifacts:
+       files:
+         - '**/*'
+       base-directory: public
+       discard-paths: yes
+     ```
 
-## 🧐 What's inside?
+### Step 4: Set Up CodePipeline
 
-A quick look at the top-level files and directories you'll see in a typical Gatsby project.
+1. **Create a Pipeline**
+   - Open the CodePipeline console.
+   - Create a new pipeline.
+   - Configure the source to point to your CodeCommit repository or GitHub repository.
+   - Add a build stage using your CodeBuild project.
+   - Add a deploy stage to deploy the built files to your S3 bucket.
 
-    .
-    ├── node_modules
-    ├── src
-    ├── .gitignore
-    ├── gatsby-browser.js
-    ├── gatsby-config.js
-    ├── gatsby-node.js
-    ├── gatsby-ssr.js
-    ├── LICENSE
-    ├── package.json
-    └── README.md
+### Step 5: Configure Triggers
 
-1.  **`/node_modules`**: This directory contains all of the modules of code that your project depends on (npm packages) are automatically installed.
+1. **Configure Triggers**
+   - Ensure that changes to your CodeCommit repository trigger the CodePipeline.
+   - This can be done in the CodePipeline configuration to ensure that the pipeline executes whenever code is pushed to the main branch.
 
-1.  **`/src`**: This directory will contain all of the code related to what you will see on the front-end of your site (what you see in the browser) such as your site header or a page template. `src` is a convention for “source code”.
+### Step 6: Test Your Deployment
 
-1.  **`.gitignore`**: This file tells git which files it should not track / not maintain a version history for.
+1. **Push Changes**
+   - Push changes to your CodeCommit repository.
+   - The pipeline should automatically start, build the Gatsby site, and deploy it to S3.
 
-1.  **`gatsby-browser.js`**: This file is where Gatsby expects to find any usage of the [Gatsby browser APIs](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-browser/) (if any). These allow customization/extension of default Gatsby settings affecting the browser.
+2. **Verify Deployment**
+   - Verify that the website is accessible through the CloudFront URL.
+   - Ensure that changes propagate correctly and quickly.
 
-1.  **`gatsby-config.js`**: This is the main configuration file for a Gatsby site. This is where you can specify information about your site (metadata) like the site title and description, which Gatsby plugins you’d like to include, etc. (Check out the [config docs](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-config/) for more detail).
-
-1.  **`gatsby-node.js`**: This file is where Gatsby expects to find any usage of the [Gatsby Node APIs](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-node/) (if any). These allow customization/extension of default Gatsby settings affecting pieces of the site build process.
-
-1.  **`gatsby-ssr.js`**: This file is where Gatsby expects to find any usage of the [Gatsby server-side rendering APIs](https://www.gatsbyjs.com/docs/reference/config-files/gatsby-ssr/) (if any). These allow customization of default Gatsby settings affecting server-side rendering.
-
-1.  **`LICENSE`**: This Gatsby starter is licensed under the 0BSD license. This means that you can see this file as a placeholder and replace it with your own license.
-
-1.  **`package.json`**: A manifest file for Node.js projects, which includes things like metadata (the project’s name, author, etc). This manifest is how npm knows which packages to install for your project.
-
-1.  **`README.md`**: A text file containing useful reference information about your project.
-
-## 🎓 Learning Gatsby
-
-Looking for more guidance? Full documentation for Gatsby lives [on the website](https://www.gatsbyjs.com/). Here are some places to start:
-
-- **For most developers, we recommend starting with our [in-depth tutorial for creating a site with Gatsby](https://www.gatsbyjs.com/docs/tutorial/getting-started/).** It starts with zero assumptions about your level of ability and walks through every step of the process.
-
-- **To dive straight into code samples, head [to our documentation](https://www.gatsbyjs.com/docs/).** In particular, check out the _Guides_, _API Reference_, and _Advanced Tutorials_ sections in the sidebar.
-
-## 💫 Deploy
-
-[Build, Deploy, and Host On Netlify](https://netlify.com)
-
-The fastest way to combine your favorite tools and APIs to build the fastest sites, stores, and apps for the web. And also the best place to build, deploy, and host your Gatsby sites.
-
-<!-- AUTO-GENERATED-CONTENT:END -->
+By following these steps, you can automate the deployment of a Gatsby.js website using AWS services. This setup ensures that your site is automatically built and deployed whenever you push changes to your repository, making it easy to manage updates and keep your site live.
